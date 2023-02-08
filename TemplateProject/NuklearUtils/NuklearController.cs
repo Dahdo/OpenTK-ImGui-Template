@@ -11,7 +11,8 @@ public unsafe class NuklearController : IDisposable
     private Nuklear.nk_context Context;
     private Window* Window;
     private Shader Shader;
-    
+    private List<char> PressedChars = new List<char>();
+
     public NuklearController(GameWindow window)
     {
         Window = window.WindowPtr;
@@ -42,6 +43,12 @@ public unsafe class NuklearController : IDisposable
     public void Update(KeyboardState keyboard, MouseState mouse)
     {
         Nuklear.nk_input_begin(Context);
+        
+        foreach (var c in PressedChars)
+        {
+            Nuklear.nk_input_char(Context, c);
+        }
+        PressedChars.Clear();
         
         Nuklear.nk_input_key(Context, Nuklear.NK_KEY_DEL, Convert.ToInt32(keyboard.IsKeyDown(Keys.Delete)));
         Nuklear.nk_input_key(Context, Nuklear.NK_KEY_ENTER, Convert.ToInt32(keyboard.IsKeyDown(Keys.Enter)));
@@ -89,6 +96,11 @@ public unsafe class NuklearController : IDisposable
         Nuklear.nk_input_scroll(Context, new Nuklear.nk_vec2{x = mouse.Scroll.X, y = mouse.Scroll.Y});
         
         Nuklear.nk_input_end(Context);
+    }
+    
+    public void PressChar(char keyChar)
+    {
+        PressedChars.Add(keyChar);
     }
 
     public void Render()
