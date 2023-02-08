@@ -6,6 +6,7 @@ using OpenTK.Windowing.Common;
 using OpenTK.Windowing.Desktop;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using TemplateProject.ImGuiUtils;
+using TemplateProject.NuklearUtils;
 using ShaderType = OpenTK.Graphics.OpenGL4.ShaderType;
 
 namespace TemplateProject;
@@ -16,6 +17,7 @@ public class Program : GameWindow
     
     private Shader shader;
     private ImGuiController controller;
+    private NuklearController NuklearController;
     private Mesh rectangle;
     private Camera camera;
     private Texture texture;
@@ -41,6 +43,8 @@ public class Program : GameWindow
 
         shader = new Shader(("shader.vert", ShaderType.VertexShader), ("shader.frag", ShaderType.FragmentShader));
         controller = new ImGuiController(ClientSize.X, ClientSize.Y);
+
+        NuklearController = new NuklearController();
 
         camera = new Camera(new FirstPersonControl(), new PerspectiveView());
 
@@ -140,6 +144,8 @@ public class Program : GameWindow
         ImGui.ShowDemoWindow();
             
         controller.Render();
+        
+        NuklearController.Render();
     }
 
     protected override void OnTextInput(TextInputEventArgs e)
