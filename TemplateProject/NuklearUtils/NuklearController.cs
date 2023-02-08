@@ -48,6 +48,8 @@ public unsafe class NuklearController : IDisposable
         Nuklear.nk_input_button(Context, Nuklear.NK_BUTTON_RIGHT, (int)mouse.X, (int)mouse.Y, mouse.IsButtonDown(MouseButton.Left).CompareTo(false));
         // TODO: NK_BUTTON_DOUBLE
         
+        Nuklear.nk_input_scroll(Context, new Nuklear.nk_vec2{x = mouse.Scroll.X, y = mouse.Scroll.Y});
+        
         Nuklear.nk_input_end(Context);
     }
 
