@@ -43,6 +43,8 @@ public unsafe class NuklearController : IDisposable
     {
         Nuklear.nk_input_begin(Context);
         
+        Nuklear.nk_input_motion(Context, (int)mouse.X, (int)mouse.Y);
+        
         Nuklear.nk_input_button(Context, Nuklear.NK_BUTTON_LEFT, (int)mouse.X, (int)mouse.Y, mouse.IsButtonDown(MouseButton.Left).CompareTo(false));
         Nuklear.nk_input_button(Context, Nuklear.NK_BUTTON_MIDDLE, (int)mouse.X, (int)mouse.Y, mouse.IsButtonDown(MouseButton.Left).CompareTo(false));
         Nuklear.nk_input_button(Context, Nuklear.NK_BUTTON_RIGHT, (int)mouse.X, (int)mouse.Y, mouse.IsButtonDown(MouseButton.Left).CompareTo(false));
