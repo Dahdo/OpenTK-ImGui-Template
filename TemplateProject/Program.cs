@@ -1,11 +1,12 @@
 ﻿using System.Runtime.InteropServices;
-using ImGuiNET;
+using DearImGui;
+using DearImGui.OpenTK;
+using DearImPlot;
 using OpenTK.Graphics.OpenGL4;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.Common;
 using OpenTK.Windowing.Desktop;
 using OpenTK.Windowing.GraphicsLibraryFramework;
-using TemplateProject.ImGuiUtils;
 using ShaderType = OpenTK.Graphics.OpenGL4.ShaderType;
 
 namespace TemplateProject;
@@ -16,6 +17,7 @@ public class Program : GameWindow
     
     private Shader shader;
     private ImGuiController controller;
+    private ImPlotContext implotContext;
     private Mesh rectangle;
     private Camera camera;
     private Texture texture;
@@ -29,7 +31,17 @@ public class Program : GameWindow
         program.Run();
     }
 
-    public Program(GameWindowSettings gameWindowSettings, NativeWindowSettings nativeWindowSettings) : base(gameWindowSettings, nativeWindowSettings) { }
+    public Program(GameWindowSettings gameWindowSettings, NativeWindowSettings nativeWindowSettings) : base(
+        gameWindowSettings, nativeWindowSettings)
+    {
+        controller = new ImGuiController(this);
+        
+        implotContext = ImPlot.CreateContext();
+
+        ImPlot.SetCurrentContext(implotContext);
+
+        ImPlot.SetImGuiContext(controller.Context);
+    }
 
     protected override void OnLoad()
     {
@@ -40,8 +52,8 @@ public class Program : GameWindow
         GL.Enable(EnableCap.DebugOutput);
 
         shader = new Shader(("shader.vert", ShaderType.VertexShader), ("shader.frag", ShaderType.FragmentShader));
-        controller = new ImGuiController(ClientSize.X, ClientSize.Y);
 
+        controller = new ImGuiController(this);
         camera = new Camera(new FirstPersonControl(), new PerspectiveView());
 
         float[] vertices = {
@@ -79,6 +91,7 @@ public class Program : GameWindow
             
         rectangle.Dispose();
         controller.Dispose();
+        ImPlot.DestroyContext(implotContext);
         texture.Dispose();
         shader.Dispose();
 
@@ -94,7 +107,7 @@ public class Program : GameWindow
         
         base.OnResize(e);
         GL.Viewport(0, 0, Size.X, Size.Y);
-        controller.WindowResized(ClientSize.X, ClientSize.Y);
+        // controller.WindowResized(ClientSize.X, ClientSize.Y);
         camera.Aspect = (float) Size.X / Size.Y;
     }
 
@@ -102,7 +115,7 @@ public class Program : GameWindow
     {
         base.OnUpdateFrame(args);
 
-        controller.Update(this, (float)args.Time);
+        controller.Update((float)args.Time);
 
         if(ImGui.GetIO().WantCaptureMouse) return;
 
@@ -138,6 +151,8 @@ public class Program : GameWindow
     private void RenderGui()
     {
         ImGui.ShowDemoWindow();
+        
+        ImPlot.ShowDemoWindow();
             
         controller.Render();
     }
@@ -145,15 +160,11 @@ public class Program : GameWindow
     protected override void OnTextInput(TextInputEventArgs e)
     {
         base.OnTextInput(e);
-            
-        controller.PressChar((char)e.Unicode);
     }
 
     protected override void OnMouseWheel(MouseWheelEventArgs e)
     {
         base.OnMouseWheel(e);
-            
-        controller.MouseScroll(e.Offset);
     }
 
     private static void OnDebugMessage(

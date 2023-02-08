@@ -5,10 +5,13 @@
         <TargetFramework>net6.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
+        <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="ImGui.NET" Version="1.88.0" />
+      <PackageReference Include="DearImGui" Version="1.88.0.1" />
+      <PackageReference Include="DearImGui.OpenTK" Version="1.0.0.1" />
+      <PackageReference Include="DearImPlot" Version="0.14.0.1" />
       <PackageReference Include="OpenTK" Version="4.7.5" />
       <PackageReference Include="StbImageSharp" Version="2.27.13" />
     </ItemGroup>
