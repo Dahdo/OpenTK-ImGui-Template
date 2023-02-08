@@ -1,6 +1,4 @@
 #version 450 core
-#extension GL_ARB_bindless_texture : require
-#extension GL_ARB_gpu_shader_int64 : require
 
 uniform mat4 ProjMtx;
 
