@@ -39,9 +39,45 @@ public unsafe class NuklearController : IDisposable
         Context.clip.userdata = new Nuklear.nk_handle();
     }
 
-    public void Update(KeyboardState keyboardState, MouseState mouse)
+    public void Update(KeyboardState keyboard, MouseState mouse)
     {
         Nuklear.nk_input_begin(Context);
+        
+        Nuklear.nk_input_key(Context, Nuklear.NK_KEY_DEL, Convert.ToInt32(keyboard.IsKeyDown(Keys.Delete)));
+        Nuklear.nk_input_key(Context, Nuklear.NK_KEY_ENTER, Convert.ToInt32(keyboard.IsKeyDown(Keys.Enter)));
+        Nuklear.nk_input_key(Context, Nuklear.NK_KEY_TAB, Convert.ToInt32(keyboard.IsKeyDown(Keys.Tab)));
+        Nuklear.nk_input_key(Context, Nuklear.NK_KEY_BACKSPACE, Convert.ToInt32(keyboard.IsKeyDown(Keys.Backspace)));
+        Nuklear.nk_input_key(Context, Nuklear.NK_KEY_UP, Convert.ToInt32(keyboard.IsKeyDown(Keys.Up)));
+        Nuklear.nk_input_key(Context, Nuklear.NK_KEY_DOWN, Convert.ToInt32(keyboard.IsKeyDown(Keys.Down)));
+        Nuklear.nk_input_key(Context, Nuklear.NK_KEY_TEXT_START, Convert.ToInt32(keyboard.IsKeyDown(Keys.Home)));
+        Nuklear.nk_input_key(Context, Nuklear.NK_KEY_TEXT_END, Convert.ToInt32(keyboard.IsKeyDown(Keys.End)));
+        Nuklear.nk_input_key(Context, Nuklear.NK_KEY_SCROLL_START, Convert.ToInt32(keyboard.IsKeyDown(Keys.Home)));
+        Nuklear.nk_input_key(Context, Nuklear.NK_KEY_SCROLL_END, Convert.ToInt32(keyboard.IsKeyDown(Keys.End)));
+        Nuklear.nk_input_key(Context, Nuklear.NK_KEY_SCROLL_DOWN, Convert.ToInt32(keyboard.IsKeyDown(Keys.PageDown)));
+        Nuklear.nk_input_key(Context, Nuklear.NK_KEY_SCROLL_UP, Convert.ToInt32(keyboard.IsKeyDown(Keys.PageUp)));
+        Nuklear.nk_input_key(Context, Nuklear.NK_KEY_SHIFT, Convert.ToInt32(keyboard.IsKeyDown(Keys.LeftShift)||
+                                                                                 keyboard.IsKeyDown(Keys.RightShift)));
+
+    if (keyboard.IsKeyDown(Keys.LeftControl) ||
+        keyboard.IsKeyDown(Keys.RightControl)) {
+        Nuklear.nk_input_key(Context, Nuklear.NK_KEY_COPY, Convert.ToInt32(keyboard.IsKeyDown(Keys.C)));
+        Nuklear.nk_input_key(Context, Nuklear.NK_KEY_PASTE, Convert.ToInt32(keyboard.IsKeyDown(Keys.V)));
+        Nuklear.nk_input_key(Context, Nuklear.NK_KEY_CUT, Convert.ToInt32(keyboard.IsKeyDown(Keys.X)));
+        Nuklear.nk_input_key(Context, Nuklear.NK_KEY_TEXT_UNDO, Convert.ToInt32(keyboard.IsKeyDown(Keys.Z)));
+        Nuklear.nk_input_key(Context, Nuklear.NK_KEY_TEXT_REDO, Convert.ToInt32(keyboard.IsKeyDown(Keys.Y)));
+        Nuklear.nk_input_key(Context, Nuklear.NK_KEY_TEXT_WORD_LEFT, Convert.ToInt32(keyboard.IsKeyDown(Keys.Left)));
+        Nuklear.nk_input_key(Context, Nuklear.NK_KEY_TEXT_WORD_RIGHT, Convert.ToInt32(keyboard.IsKeyDown(Keys.Right)));
+        Nuklear.nk_input_key(Context, Nuklear.NK_KEY_TEXT_LINE_START, Convert.ToInt32(keyboard.IsKeyDown(Keys.B)));
+        Nuklear.nk_input_key(Context, Nuklear.NK_KEY_TEXT_LINE_END, Convert.ToInt32(keyboard.IsKeyDown(Keys.E)));
+        Nuklear.nk_input_key(Context, Nuklear.NK_KEY_TEXT_SELECT_ALL, Convert.ToInt32(keyboard.IsKeyDown(Keys.A)));
+    } else {
+        Nuklear.nk_input_key(Context, Nuklear.NK_KEY_LEFT, Convert.ToInt32(keyboard.IsKeyDown(Keys.Left)));
+        Nuklear.nk_input_key(Context, Nuklear.NK_KEY_RIGHT, Convert.ToInt32(keyboard.IsKeyDown(Keys.Right)));
+        Nuklear.nk_input_key(Context, Nuklear.NK_KEY_COPY, 0);
+        Nuklear.nk_input_key(Context, Nuklear.NK_KEY_PASTE, 0);
+        Nuklear.nk_input_key(Context, Nuklear.NK_KEY_CUT, 0);
+        Nuklear.nk_input_key(Context, Nuklear.NK_KEY_SHIFT, 0);
+    }
         
         Nuklear.nk_input_motion(Context, (int)mouse.X, (int)mouse.Y);
         
