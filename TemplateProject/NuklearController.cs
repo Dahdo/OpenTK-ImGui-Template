@@ -4,14 +4,13 @@ using OpenTK.Graphics.OpenGL4;
 using OpenTK.Windowing.Desktop;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 
-namespace TemplateProject.NuklearUtils;
+namespace TemplateProject;
 
 public unsafe class NuklearController : IDisposable
 {
     private Nuklear.nk_context Context;
     private Window* Window;
     private Shader Shader;
-    private List<char> PressedChars = new List<char>();
 
     public NuklearController(GameWindow window)
     {
@@ -23,12 +22,12 @@ public unsafe class NuklearController : IDisposable
 
     private void HandleClipboard()
     {
-        Context.clip.copy = (Nuklear.nk_handle handle, char* text, int length) =>
+        Context.clip.copy = (handle, text, length) =>
         {
             string clipboard = Marshal.PtrToStringAnsi(new IntPtr(text), length);
             GLFW.SetClipboardString(Window, clipboard);
         };
-        Context.clip.paste = (Nuklear.nk_handle handle, Nuklear.nk_text_edit edit) =>
+        Context.clip.paste = (handle, edit) =>
         {
             string clipboard = GLFW.GetClipboardString(Window);
             if (clipboard != null)
@@ -43,12 +42,6 @@ public unsafe class NuklearController : IDisposable
     public void Update(KeyboardState keyboard, MouseState mouse)
     {
         Nuklear.nk_input_begin(Context);
-        
-        foreach (var c in PressedChars)
-        {
-            Nuklear.nk_input_char(Context, c);
-        }
-        PressedChars.Clear();
         
         Nuklear.nk_input_key(Context, Nuklear.NK_KEY_DEL, Convert.ToInt32(keyboard.IsKeyDown(Keys.Delete)));
         Nuklear.nk_input_key(Context, Nuklear.NK_KEY_ENTER, Convert.ToInt32(keyboard.IsKeyDown(Keys.Enter)));
@@ -100,7 +93,7 @@ public unsafe class NuklearController : IDisposable
     
     public void PressChar(char keyChar)
     {
-        PressedChars.Add(keyChar);
+        Nuklear.nk_input_char(Context, keyChar);
     }
 
     public void Render()
