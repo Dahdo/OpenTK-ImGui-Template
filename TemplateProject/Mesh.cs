@@ -2,67 +2,75 @@ using OpenTK.Graphics.OpenGL4;
 
 namespace TemplateProject;
 
-public class Mesh : IDisposable
+public class Mesh : IDisposable, IBindable
 {
-    private int Vao { get; }
-    private List<int> Vbos { get; } = new ();
+    public int Handle { get; }
+    private List<VertexBuffer> VertexBuffers { get; } = new();
+    private IndexBuffer? IndexBuffer { get; }
     private PrimitiveType Type { get; }
-    private int Count { get; }
 
-    public Mesh(PrimitiveType type, int[] indices, params (float[] data, int index, int size)[] buffers)
+    public Mesh(PrimitiveType type, IndexBuffer? indexBuffer, VertexBuffer vertexBuffer, params VertexBuffer[] vertexBuffers)
     {
         Type = type;
-        Count = indices.Length;
-        Vao = GL.GenVertexArray();
-        GL.BindVertexArray(Vao);
-        foreach (var (data, index, size) in buffers.OrderBy(buffer => buffer.index)) 
-            LoadData(data, index, size);
-        LoadIndices(indices);
+        GL.CreateVertexArrays(1, out int handle);
+        Handle = handle;
+        IndexBuffer = indexBuffer;
+        VertexBuffers.Add(vertexBuffer);
+        VertexBuffers.AddRange(vertexBuffers);
+        if (IndexBuffer != null)
+        {
+            GL.VertexArrayElementBuffer(Handle, IndexBuffer.Handle);
+        }
+
+        for (var index = 0; index < VertexBuffers.Count; index++)
+        {
+            var buffer = VertexBuffers[index];
+            buffer.CreateLayout(handle, index);
+        }
+    }
+
+    public void Bind()
+    {
+        GL.BindVertexArray(Handle);
+    }
+
+    public void Unbind()
+    {
         GL.BindVertexArray(0);
-        GL.BindBuffer(BufferTarget.ElementArrayBuffer, 0);
-    }
-
-    private void LoadData(float[] data, int index, int size)
-    {
-        var vbo = GL.GenBuffer();
-        GL.BindBuffer(BufferTarget.ArrayBuffer, vbo);
-        GL.BufferData(BufferTarget.ArrayBuffer, data.Length * sizeof(float), data, BufferUsageHint.StaticDraw);
-        GL.EnableVertexAttribArray(index);
-        GL.VertexAttribPointer(index, size, VertexAttribPointerType.Float, false, 0, 0);
-        GL.BindBuffer(BufferTarget.ArrayBuffer, 0);
-        Vbos.Add(vbo);
-    }
-
-    public void UpdateData(float[] data, int index)
-    {
-        var vbo = Vbos[index];
-        GL.BindBuffer(BufferTarget.ArrayBuffer, vbo);
-        GL.BufferSubData(BufferTarget.ArrayBuffer, IntPtr.Zero, data.Length * sizeof(float), data);
-        GL.BindBuffer(BufferTarget.ArrayBuffer, 0);
-    }
-
-    private void LoadIndices(int[] data) {
-        var vbo = GL.GenBuffer();
-        GL.BindBuffer(BufferTarget.ElementArrayBuffer, vbo);
-        GL.BufferData(BufferTarget.ElementArrayBuffer, data.Length * sizeof(int), data, BufferUsageHint.StaticDraw);
-        Vbos.Add(vbo);
     }
 
     public void Render()
     {
-        GL.BindVertexArray(Vao);
-        GL.DrawElements(Type, Count, DrawElementsType.UnsignedInt, 0);
-        GL.BindVertexArray(0);
+        GL.DrawArrays(Type, 0, VertexBuffers[0].Count);
+    }
+
+    public void Render(int offset, int count)
+    {
+        GL.DrawArrays(Type, offset, count);
+    }
+
+    public void RenderIndexed()
+    {
+        if (IndexBuffer is null) throw new InvalidOperationException("Index Buffer is null");
+
+        GL.DrawElements(Type, IndexBuffer.Count, IndexBuffer.ElementsType, 0);
+    }
+
+    public void RenderIndexed(int offset, int count, int vertexOffset = 0)
+    {
+        if (IndexBuffer is null) throw new InvalidOperationException("Index Buffer is null");
+
+        if (vertexOffset == 0)
+            GL.DrawElements(Type, count, IndexBuffer.ElementsType, offset);
+        else
+            GL.DrawElementsBaseVertex(Type, count, IndexBuffer.ElementsType, offset, vertexOffset);
     }
 
     public void Dispose()
     {
-        GL.DeleteVertexArray(Vao);
-        foreach (var vbo in Vbos)
-        {
-            GL.DeleteBuffer(vbo);
-        }
-        Vbos.Clear();
+        GL.DeleteVertexArray(Handle);
+        VertexBuffers.ForEach(buffer => buffer.Dispose());
+        IndexBuffer?.Dispose();
         GC.SuppressFinalize(this);
     }
 }

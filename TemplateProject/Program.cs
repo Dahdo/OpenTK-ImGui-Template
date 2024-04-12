@@ -5,27 +5,46 @@ using OpenTK.Mathematics;
 using OpenTK.Windowing.Common;
 using OpenTK.Windowing.Desktop;
 using OpenTK.Windowing.GraphicsLibraryFramework;
-using TemplateProject.ImGuiUtils;
-using TemplateProject.NuklearUtils;
 using ShaderType = OpenTK.Graphics.OpenGL4.ShaderType;
 
 namespace TemplateProject;
 
+public struct Vertex
+{
+    public Vector3 Position;
+    public Vector2 TexCoord;
+
+    public Vertex(Vector3 position, Vector2 texCoord)
+    {
+        Position = position;
+        TexCoord = texCoord;
+    }
+}
+
 public class Program : GameWindow
 {
-    public bool IsLoaded { get; private set; }
-    
-    private Shader shader;
-    private ImGuiController controller;
-    private NuklearController NuklearController;
-    private Mesh rectangle;
-    private Camera camera;
-    private Texture texture;
-    private static DebugProc _debugProcCallback = OnDebugMessage;
-    private static GCHandle _debugProcCallbackHandle;
+    private bool IsLoaded { get; set; }
+
+    private Shader Shader { get; set; }
+    private ImGuiController ImGuiController { get; set; }
+    private Mesh RectangleMesh { get; set; }
+    private Matrix4 ModelMatrix { get; set; }
+    private Camera Camera { get; set; }
+    private Texture Texture { get; set; }
+
+    private DebugProc DebugProcCallback { get; } = OnDebugMessage;
+
     public static void Main(string[] args)
     {
-        using var program = new Program(GameWindowSettings.Default, NativeWindowSettings.Default);
+        var gwSettings = GameWindowSettings.Default;
+        var nwSettings = NativeWindowSettings.Default;
+        nwSettings.NumberOfSamples = 16;
+
+#if DEBUG
+        nwSettings.Flags |= ContextFlags.Debug;
+#endif
+
+        using var program = new Program(gwSettings, nwSettings);
         program.Title = "Project Title";
         program.Size = new Vector2i(1280, 800);
         program.Run();
@@ -37,38 +56,40 @@ public class Program : GameWindow
     {
         base.OnLoad();
 
-        _debugProcCallbackHandle = GCHandle.Alloc(_debugProcCallback);
-        GL.DebugMessageCallback(_debugProcCallback, IntPtr.Zero);
+        GL.DebugMessageCallback(DebugProcCallback, IntPtr.Zero);
         GL.Enable(EnableCap.DebugOutput);
 
-        shader = new Shader(("shader.vert", ShaderType.VertexShader), ("shader.frag", ShaderType.FragmentShader));
-        controller = new ImGuiController(ClientSize.X, ClientSize.Y);
+#if DEBUG
+        GL.Enable(EnableCap.DebugOutputSynchronous);
+#endif
 
-        NuklearController = new NuklearController();
+        Shader = new Shader(("shader.vert", ShaderType.VertexShader), ("shader.frag", ShaderType.FragmentShader));
+        ImGuiController = new ImGuiController(ClientSize.X, ClientSize.Y);
 
-        camera = new Camera(new FirstPersonControl(), new PerspectiveView());
+        Camera = new Camera(new NoControl(Vector3.Zero, Vector3.UnitZ), new PerspectiveProjection());
 
-        float[] vertices = {
-            0.5f,  0.5f, 2.0f,
-            0.5f, -0.5f, 2.0f,
-            -0.5f, -0.5f, 2.0f,
-            -0.5f,  0.5f, 2.0f
+        Vertex[] vertices = {
+            new(new Vector3(0.5f, 0.5f, 0.0f), new Vector2(0.0f, 0.0f)),
+            new(new Vector3(0.5f, -0.5f, 0.0f), new Vector2(0.0f, 1.0f)),
+            new(new Vector3(-0.5f, -0.5f, 0.0f), new Vector2(1.0f, 1.0f)),
+            new(new Vector3(-0.5f, 0.5f, 0.0f), new Vector2(1.0f, 0.0f))
         };
-        float[] texCoords = {
-            0.0f, 0.0f,
-            0.0f, 1.0f,
-            1.0f, 1.0f,
-            1.0f, 0.0f
-                
-        };
-        int[] indices= {
+        int[] indices = {
             0, 1, 3,
             1, 2, 3
-        };  
-        rectangle = new Mesh(PrimitiveType.Triangles, indices, (vertices, 0, 3), (texCoords, 1, 2));
+        };
+        var indexBuffer = new IndexBuffer(indices, indices.Length * sizeof(int),
+            DrawElementsType.UnsignedInt, 6);
+        var vertexBuffer = new VertexBuffer(vertices, vertices.Length * Marshal.SizeOf<Vertex>(),
+            4, BufferUsageHint.StaticDraw,
+            new VertexBuffer.Attribute(0, 3) /*positions*/,
+            new VertexBuffer.Attribute(1, 2) /*texture coords*/);
+        RectangleMesh = new Mesh(PrimitiveType.Triangles, indexBuffer, vertexBuffer);
 
-        texture = new Texture("texture.jpg");
-            
+        ModelMatrix = Matrix4.CreateTranslation(new Vector3(0, 0, 2));
+
+        Texture = new Texture("texture.jpg");
+
         GL.ClearColor(0.4f, 0.7f, 0.9f, 1.0f);
         GL.Disable(EnableCap.CullFace);
         GL.Enable(EnableCap.DepthTest);
@@ -80,86 +101,146 @@ public class Program : GameWindow
     protected override void OnUnload()
     {
         base.OnUnload();
-            
-        rectangle.Dispose();
-        controller.Dispose();
-        texture.Dispose();
-        shader.Dispose();
+
+        RectangleMesh.Dispose();
+        ImGuiController.Dispose();
+        Texture.Dispose();
+        Shader.Dispose();
 
         IsLoaded = false;
     }
 
     protected override void OnResize(ResizeEventArgs e)
     {
-        if (!IsLoaded)
-        {
-            return;
-        }
-        
+        if (!IsLoaded) return;
+
         base.OnResize(e);
-        GL.Viewport(0, 0, Size.X, Size.Y);
-        controller.WindowResized(ClientSize.X, ClientSize.Y);
-        camera.Aspect = (float) Size.X / Size.Y;
+        GL.Viewport(0, 0, ClientSize.X, ClientSize.Y);
+        ImGuiController.OnWindowResized(ClientSize.X, ClientSize.Y);
+        Camera.Aspect = (float)ClientSize.X / ClientSize.Y;
     }
 
     protected override void OnUpdateFrame(FrameEventArgs args)
     {
         base.OnUpdateFrame(args);
 
-        controller.Update(this, (float)args.Time);
+        ImGuiController.Update((float)args.Time);
+        Camera.Update((float)args.Time);
 
-        if(ImGui.GetIO().WantCaptureMouse) return;
+        if (ImGui.GetIO().WantCaptureMouse) return;
 
         var keyboard = KeyboardState.GetSnapshot();
         var mouse = MouseState.GetSnapshot();
-        
-        camera.HandleInput(keyboard, mouse, (float) args.Time);
-            
+
+        Camera.HandleInput((float)args.Time, keyboard, mouse);
+
         if (keyboard.IsKeyDown(Keys.Escape)) Close();
     }
 
     protected override void OnRenderFrame(FrameEventArgs args)
     {
         base.OnRenderFrame(args);
-            
+
         GL.Disable(EnableCap.CullFace);
         GL.Enable(EnableCap.DepthTest);
         GL.DepthFunc(DepthFunction.Lequal);
 
         GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
-            
-        shader.Use();
-        texture.Bind();
-        shader.LoadInteger("sampler", 0);
-        shader.LoadMatrix4("mvp", camera.GetProjectionViewMatrix());
-        rectangle.Render();
+
+        Shader.Use();
+        Texture.Bind();
+        Shader.LoadInteger("sampler", 0);
+        Shader.LoadMatrix4("mvp", ModelMatrix * Camera.ProjectionViewMatrix);
+        RectangleMesh.Bind();
+        RectangleMesh.RenderIndexed();
 
         RenderGui();
 
         Context.SwapBuffers();
     }
 
+    protected override void OnKeyDown(KeyboardKeyEventArgs e)
+    {
+        base.OnKeyDown(e);
+
+        ImGuiController.OnKey(e, true);
+    }
+
+    protected override void OnKeyUp(KeyboardKeyEventArgs e)
+    {
+        base.OnKeyUp(e);
+
+        ImGuiController.OnKey(e, false);
+    }
+
+    protected override void OnMouseDown(MouseButtonEventArgs e)
+    {
+        base.OnMouseDown(e);
+
+        ImGuiController.OnMouseButton(e);
+    }
+
+    protected override void OnMouseUp(MouseButtonEventArgs e)
+    {
+        base.OnMouseUp(e);
+
+        ImGuiController.OnMouseButton(e);
+    }
+
+    protected override void OnMouseMove(MouseMoveEventArgs e)
+    {
+        base.OnMouseMove(e);
+
+        ImGuiController.OnMouseMove(e);
+    }
+
+    private static int _control;
+    private static int _projection;
     private void RenderGui()
     {
+        ImGui.Begin("Camera");
+        if (ImGui.CollapsingHeader("Control"))
+        {
+            ImGui.Indent(10);
+            if (ImGui.RadioButton("No Control", ref _control, 0))
+                Camera.Control = new NoControl(Camera.Control);
+            if (ImGui.RadioButton("Orbital Control", ref _control, 1))
+                Camera.Control = new OrbitingControl(Camera.Control);
+            if (ImGui.RadioButton("FlyBy Control", ref _control, 2))
+                Camera.Control = new FlyByControl(Camera.Control);
+
+            ImGui.Indent(-10);
+        }
+
+        if (ImGui.CollapsingHeader("Projection"))
+        {
+            ImGui.Indent(10);
+            if (ImGui.RadioButton("Perspective", ref _projection, 0))
+                Camera.Projection = new PerspectiveProjection { Aspect = Camera.Aspect };
+            if (ImGui.RadioButton("Orthographic", ref _projection, 1))
+                Camera.Projection = new OrthographicProjection { Aspect = Camera.Aspect };
+            ImGui.Indent(-10);
+        }
+
+        ImGui.End();
+
         ImGui.ShowDemoWindow();
-            
-        controller.Render();
-        
-        NuklearController.Render();
+
+        ImGuiController.Render();
     }
 
     protected override void OnTextInput(TextInputEventArgs e)
     {
         base.OnTextInput(e);
-            
-        controller.PressChar((char)e.Unicode);
+
+        ImGuiController.OnPressedChar((char)e.Unicode);
     }
 
     protected override void OnMouseWheel(MouseWheelEventArgs e)
     {
         base.OnMouseWheel(e);
-            
-        controller.MouseScroll(e.Offset);
+
+        ImGuiController.OnMouseScroll(e);
     }
 
     private static void OnDebugMessage(
@@ -171,9 +252,9 @@ public class Program : GameWindow
         IntPtr pMessage,        // Pointer to message string.
         IntPtr pUserParam)      // The pointer you gave to OpenGL.
     {
-        string message = Marshal.PtrToStringAnsi(pMessage, length);
-        
-        string log = $"[{severity} source={source} type={type} id={id}] {message}";
+        var message = Marshal.PtrToStringAnsi(pMessage, length);
+
+        var log = $"[{severity} source={source} type={type} id={id}] {message}";
 
         Console.WriteLine(log);
     }
