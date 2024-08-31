@@ -189,6 +189,12 @@ public class Shader : IDisposable
         GL.ProgramUniformMatrix4(Handle, GetUniformLocation(name), transpose, ref value);
     }
 
+    public void LoadVector3(string name, Vector3 value)
+    {
+        GL.ProgramUniform3(Handle, GetUniformLocation(name), ref value);
+    }
+
+
     public void Dispatch(int x, int y, int z)
     {
         GL.DispatchCompute(x, y, z);

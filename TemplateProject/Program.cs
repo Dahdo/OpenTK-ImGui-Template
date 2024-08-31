@@ -120,6 +120,17 @@ public class Program : GameWindow
         Shader.Use();
         Matrix4 mvp = WireframeCube.ModelMatrix * Camera.ProjectionViewMatrix;
         Shader.LoadMatrix4("mvp", WireframeCube.ModelMatrix * Camera.ProjectionViewMatrix);
+
+        // Load the model matrix
+        Shader.LoadMatrix4("model", WireframeCube.ModelMatrix);
+
+        // Set lighting uniforms
+        Shader.LoadVector3("lightPos", new Vector3(1.0f, 0.5f, 0.4f)); 
+        Shader.LoadVector3("viewPos", Camera.Position); 
+        Shader.LoadVector3("lightColor", new Vector3(1.0f, 1.0f, 1.0f));
+        Shader.LoadVector3("objectColor", new Vector3(0.5f, 0.1f, 0.1f));
+
+
         WireframeCube.Mesh.Bind();
         WireframeCube.Mesh.RenderIndexed();
 
@@ -132,6 +143,7 @@ public class Program : GameWindow
 
         Context.SwapBuffers();
     }
+
 
     protected override void OnKeyDown(KeyboardKeyEventArgs e)
     {
