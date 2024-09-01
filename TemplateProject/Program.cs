@@ -15,7 +15,7 @@ public class Program : GameWindow
 
     private Shader Shader { get; set; } = null!;
     private ImGuiController ImGuiController { get; set; } = null!;
-    private WireframeCube WireframeCube { get; set; } = null!;
+    private CylinderShade CylinderShade { get; set; } = null!;
     private Camera Camera { get; set; } = null!;
     private Texture Texture { get; set; } = null!;
 
@@ -55,7 +55,7 @@ public class Program : GameWindow
 
         Camera = new Camera(new OrbitingControl(5 * Vector3.UnitZ, Vector3.Zero), new PerspectiveProjection());
 
-        WireframeCube = new WireframeCube();
+        CylinderShade = new CylinderShade();
 
         Texture = new Texture("texture.jpg");
 
@@ -71,7 +71,7 @@ public class Program : GameWindow
     {
         base.OnUnload();
 
-        WireframeCube.Dispose();
+        CylinderShade.Dispose();
         ImGuiController.Dispose();
         Texture.Dispose();
         Shader.Dispose();
@@ -99,7 +99,7 @@ public class Program : GameWindow
         ImGuiController.Update((float)args.Time);
         Camera.Update((float)args.Time);
 
-        WireframeCube.ModelMatrix = Matrix4.CreateRotationY(_time * 0.25f);
+        CylinderShade.ModelMatrix = Matrix4.CreateRotationY(_time * 0.25f);
 
         if (ImGui.GetIO().WantCaptureMouse) return;
 
@@ -118,23 +118,36 @@ public class Program : GameWindow
         GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
 
         Shader.Use();
-        Matrix4 mvp = WireframeCube.ModelMatrix * Camera.ProjectionViewMatrix;
-        Shader.LoadMatrix4("mvp", WireframeCube.ModelMatrix * Camera.ProjectionViewMatrix);
-
+        Matrix4 mvp = CylinderShade.ModelMatrix * Camera.ProjectionViewMatrix;
+        Shader.LoadMatrix4("mvp", CylinderShade.ModelMatrix * Camera.ProjectionViewMatrix);
         // Load the model matrix
-        Shader.LoadMatrix4("model", WireframeCube.ModelMatrix);
+        Shader.LoadMatrix4("model", CylinderShade.ModelMatrix);
 
         // Set lighting uniforms
-        Shader.LoadVector3("lightPos", new Vector3(1.0f, 0.5f, 0.4f)); 
+        Shader.LoadVector3("lightPos", new Vector3(0.0f, 0.7f, 0.0f)); // Top light
+        //Shader.LoadVector3("lightPos", new Vector3(1.0f, -1.0f, 1.0f)); // Diagonal - bottom
+        //Shader.LoadVector3("lightPos", new Vector3(0.0f, -0.2f, 0.0f)); // Bottom light
+        //Shader.LoadVector3("lightPos", new Vector3(0.15f, 0.0f, 0.0f)); // Side - close
+        //Shader.LoadVector3("lightPos", new Vector3(0.3f, 0.0f, 0.0f)); // Side - far
+        //Shader.LoadVector3("lightPos", new Vector3(0.0f, 0.0f, 0.2f)); // Frontal
+
         Shader.LoadVector3("viewPos", Camera.Position); 
+
         Shader.LoadVector3("lightColor", new Vector3(1.0f, 1.0f, 1.0f));
-        Shader.LoadVector3("objectColor", new Vector3(0.5f, 0.1f, 0.1f));
+        //Shader.LoadVector3("lightColor", new Vector3(0.8f, 0.9f, 1.0f));
+
+        Shader.LoadVector3("objectColor", new Vector3(0.8f, 0.5f, 0.2f)); // Copper
+        //Shader.LoadVector3("objectColor", new Vector3(0.0f, 0.5f, 1.0f)); // Light blue
+        //Shader.LoadVector3("objectColor", new Vector3(0.0f, 0.8f, 0.4f)); // Green
+
+        Shader.LoadFloat("ambientStrength", 0.3f);
 
 
-        WireframeCube.Mesh.Bind();
-        WireframeCube.Mesh.RenderIndexed();
 
-        DebugMatrix(WireframeCube.ModelMatrix, "Model Matrix");
+        CylinderShade.Mesh.Bind();
+        CylinderShade.Mesh.RenderIndexed();
+
+        DebugMatrix(CylinderShade.ModelMatrix, "Model Matrix");
         DebugMatrix(Camera.ViewMatrix, "View Matrix");
         DebugMatrix(Camera.ProjectionMatrix, "Projection Matrix");
         DebugMatrix(mvp, "MVP Matrix");
